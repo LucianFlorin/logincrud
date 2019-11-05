@@ -35,46 +35,27 @@ redisClient.on('error', (err) => {
   console.log('Redis error: ', err);
 });
 
-// Start a session; we use Redis for the session store.
-// "secret" will be used to create the session ID hash (the cookie id and the redis key value)
-// "name" will show up as your cookie name in the browser
-// "cookie" is provided by default; you can add it to add additional personalized options
-// The "store" ttl is the expiration time for each Redis session ID, in seconds
 app.use(session({
   secret: 'RedisSessionSecret',
   name: '_redisPractice',
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false, expires: 1000 * 60 * 5 },
-  store: new redisStore({ host: 'localhost', port: 6379, client: redisClient, ttl: 86400 }),
+  cookie: { secure: false},
+  store: new redisStore({ host: 'localhost', port: 6379, client: redisClient, ttl: 300 }),
 }));
 
-const whitelist = ['http://localhost:3001'];
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (whitelist.indexOf(origin) !== -1 || !origin) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  }
-};
 app.use(helmet());
-app.use(cors(corsOptions));
+app.use(cors({credentials : true, origin: "http://localhost:3007"}));
 app.use(bodyParser.json());
-app.use(morgan('combined')); // use 'tiny' or 'combined'
+app.use(morgan('combined'));
 
 app.post("/login", (req, res, next) => {
   if (req.body.username && req.body.password) {
-      main.logInUser(req, res, db);
+    main.logInUser(req, res, db);
   }
   else {
-    res.send('Incorrect username or password!');
+    res.status(500).send('Incorrect username or password!');
   }
 });
-
-// App Routes - Auth
-app.get('/crud', (req, res) => main.getProjects(req, res, db));
+app.get("/crud", (req, res) => main.getProjects(req, res, db));
 app.post('/crud', (req, res) => main.postProject(req, res, db));
 app.put('/crud', (req, res) => main.putProject(req, res, db));
 app.delete('/crud', (req, res) => main.deleteProject(req, res, db));
